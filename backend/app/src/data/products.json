@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "name": "Retro Sneakers",
+    "description": "Classic canvas low-tops for everyday wear.",
+    "price": 69.99,
+    "stock": 20,
+    "image": "https://placehold.co/300x200?text=Sneakers"
+  },
+  {
+    "id": 2,
+    "name": "Minimalist Backpack",
+    "description": "20L daypack with padded laptop sleeve.",
+    "price": 54.5,
+    "stock": 15,
+    "image": "https://placehold.co/300x200?text=Backpack"
+  },
+  {
+    "id": 3,
+    "name": "Ceramic Mug",
+    "description": "12oz stoneware mug with matte glaze.",
+    "price": 14.0,
+    "stock": 40,
+    "image": "https://placehold.co/300x200?text=Mug"
+  }
+]
