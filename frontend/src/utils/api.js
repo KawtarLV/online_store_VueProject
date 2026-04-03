@@ -102,7 +102,15 @@ export function getApiUrl(endpoint) {
   return buildApiUrl(endpoint);
 }
 
-// POST multipart form-data
+/**
+ * Make a POST request with multipart/form-data (used for file uploads)
+ * Note: do not set Content-Type manually — the browser sets it with the boundary
+ *
+ * @param {string} endpoint - API endpoint
+ * @param {FormData} formData - the form data object to send
+ * @param {RequestInit} options - extra fetch options
+ * @returns {Promise<Response>}
+ */
 export async function postForm(endpoint, formData, options = {}) {
   const url = buildApiUrl(endpoint);
   return fetch(url, {
@@ -112,7 +120,15 @@ export async function postForm(endpoint, formData, options = {}) {
   });
 }
 
-// PUT multipart form-data
+/**
+ * Make a PUT request with multipart/form-data (used for updating products with images)
+ * Note: do not set Content-Type manually — the browser sets it with the boundary
+ *
+ * @param {string} endpoint - API endpoint
+ * @param {FormData} formData - the form data object to send
+ * @param {RequestInit} options - extra fetch options
+ * @returns {Promise<Response>}
+ */
 export async function putForm(endpoint, formData, options = {}) {
   const url = buildApiUrl(endpoint);
   return fetch(url, {

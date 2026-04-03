@@ -4,36 +4,55 @@ namespace App\Controllers;
 
 use App\Framework\Controller;
 use App\Models\Product;
-use App\Services\AuthService;
-use App\Services\ProductService;
+use App\Services\IAuthService;
+use App\Services\IProductService;
 
+/**
+ * Handles all product-related routes
+ *
+ * Public routes (no auth needed):
+ *   GET /products, GET /products/{id}
+ *
+ * Admin-only routes:
+ *   POST /products, PUT /products/{id}, DELETE /products/{id}
+ */
 class ProductController extends Controller
 {
-    private ProductService $service;
-    private AuthService $auth;
+    private IProductService $service;
+    private IAuthService $auth;
 
-    public function __construct()
+    /**
+     * @param IProductService $service - injected by the IoC container
+     * @param IAuthService $auth - injected by the IoC container
+     */
+    public function __construct(IProductService $service, IAuthService $auth)
     {
         parent::__construct();
-        $this->service = new ProductService();
-        $this->auth = new AuthService();
+        $this->service = $service;
+        $this->auth = $auth;
     }
 
+    /**
+     * Returns a paginated list of products
+     * Supports optional category filter, page, and per_page query params
+     */
     public function getAll(): void
     {
         $categoryId = isset($_GET['category']) && $_GET['category'] !== '' ? (int) $_GET['category'] : null;
-        $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
-        $perPage = isset($_GET['per_page']) ? (int) $_GET['per_page'] : 9;
+        $page       = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+        $perPage    = isset($_GET['per_page']) ? (int) $_GET['per_page'] : 9;
 
         $this->sendSuccessResponse($this->service->list($categoryId, $page, $perPage));
     }
 
     /**
-     * @param array<string, mixed> $vars
+     * Returns a single product by ID
+     *
+     * @param array<string, mixed> $vars - route params (id)
      */
     public function get(array $vars): void
     {
-        $id = (int) ($vars['id'] ?? 0);
+        $id      = (int) ($vars['id'] ?? 0);
         $product = $this->service->get($id);
         if (!$product) {
             $this->sendErrorResponse('Product not found', 404);
@@ -42,6 +61,10 @@ class ProductController extends Controller
         $this->sendSuccessResponse($product);
     }
 
+    /**
+     * Creates a new product (admin only)
+     * Accepts JSON or multipart/form-data (with image uploads)
+     */
     public function create(): void
     {
         if (!$this->requireAdmin()) {
@@ -50,14 +73,16 @@ class ProductController extends Controller
 
         $product = $this->hydrateProductFromRequest();
         if (!$product) {
-            return; // error already sent
+            return;
         }
         $created = $this->service->create($product);
         $this->sendSuccessResponse($created, 201);
     }
 
     /**
-     * @param array<string, mixed> $vars
+     * Updates an existing product (admin only)
+     *
+     * @param array<string, mixed> $vars - route params (id)
      */
     public function update(array $vars): void
     {
@@ -65,10 +90,10 @@ class ProductController extends Controller
             return;
         }
 
-        $id = (int) ($vars['id'] ?? 0);
+        $id      = (int) ($vars['id'] ?? 0);
         $product = $this->hydrateProductFromRequest();
         if (!$product) {
-            return; // error already sent
+            return;
         }
         $updated = $this->service->update($id, $product);
         if (!$updated) {
@@ -79,7 +104,9 @@ class ProductController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $vars
+     * Deletes a product by ID (admin only)
+     *
+     * @param array<string, mixed> $vars - route params (id)
      */
     public function delete(array $vars): void
     {
@@ -87,7 +114,7 @@ class ProductController extends Controller
             return;
         }
 
-        $id = (int) ($vars['id'] ?? 0);
+        $id      = (int) ($vars['id'] ?? 0);
         $deleted = $this->service->delete($id);
         if (!$deleted) {
             $this->sendErrorResponse('Product not found', 404);
@@ -97,21 +124,25 @@ class ProductController extends Controller
     }
 
     /**
-     * Build Product from JSON or multipart/form-data.
+     * Builds a Product model from the current request
+     * Handles both JSON and multipart/form-data (with file uploads)
+     * All user-supplied string fields are sanitized with htmlspecialchars()
+     *
+     * @return Product|null - populated product, or null if validation failed
      */
     private function hydrateProductFromRequest(): ?Product
     {
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
         if (stripos($contentType, 'multipart/form-data') !== false) {
-            // If the form sends files, read everything from $_POST and $_FILES.
-            $product = new Product();
-            $product->name = (string) ($_POST['name'] ?? '');
-            $product->description = (string) ($_POST['description'] ?? '');
-            $product->price = (float) ($_POST['price'] ?? 0);
-            $product->stock = (int) ($_POST['stock'] ?? 0);
-            $product->brand = isset($_POST['brand']) ? (string) $_POST['brand'] : null;
-            $product->rating = isset($_POST['rating']) ? (float) $_POST['rating'] : 0;
-            $product->categoryId = isset($_POST['categoryId']) && $_POST['categoryId'] !== '' ? (int) $_POST['categoryId'] : null;
+            $product              = new Product();
+            $product->name        = $this->sanitize((string) ($_POST['name'] ?? ''));
+            $product->description = $this->sanitize((string) ($_POST['description'] ?? ''));
+            $product->price       = (float) ($_POST['price'] ?? 0);
+            $product->stock       = (int) ($_POST['stock'] ?? 0);
+            $product->brand       = isset($_POST['brand']) ? $this->sanitize((string) $_POST['brand']) : null;
+            $product->rating      = isset($_POST['rating']) ? (float) $_POST['rating'] : 0;
+            $product->categoryId  = isset($_POST['categoryId']) && $_POST['categoryId'] !== ''
+                ? (int) $_POST['categoryId'] : null;
 
             $specsRaw = $_POST['specs'] ?? '';
             if ($specsRaw !== '') {
@@ -123,7 +154,7 @@ class ProductController extends Controller
                 $product->specs = $decoded;
             }
 
-            // main image
+            // main image (uploaded file takes priority over URL)
             if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
                 $product->image = $this->storeUploadedFile($_FILES['image']);
                 if ($product->image === null) {
@@ -134,18 +165,18 @@ class ProductController extends Controller
                 $product->image = (string) $_POST['image_url'];
             }
 
-            // gallery up to 2
+            // gallery images — up to 2 additional images
             $galleryUrls = [];
             if (isset($_FILES['gallery']) && is_array($_FILES['gallery']['name'])) {
                 $count = count($_FILES['gallery']['name']);
                 for ($i = 0; $i < $count && count($galleryUrls) < 2; $i++) {
                     if ($_FILES['gallery']['error'][$i] === UPLOAD_ERR_OK) {
                         $fileArr = [
-                            'name' => $_FILES['gallery']['name'][$i],
-                            'type' => $_FILES['gallery']['type'][$i],
+                            'name'     => $_FILES['gallery']['name'][$i],
+                            'type'     => $_FILES['gallery']['type'][$i],
                             'tmp_name' => $_FILES['gallery']['tmp_name'][$i],
-                            'error' => $_FILES['gallery']['error'][$i],
-                            'size' => $_FILES['gallery']['size'][$i],
+                            'error'    => $_FILES['gallery']['error'][$i],
+                            'size'     => $_FILES['gallery']['size'][$i],
                         ];
                         $stored = $this->storeUploadedFile($fileArr);
                         if ($stored) {
@@ -174,19 +205,33 @@ class ProductController extends Controller
             return $product;
         }
 
-        // If there are no files, treat the request like normal JSON.
+        // JSON path
         $product = $this->mapPostDataToClass(Product::class);
         if (!$product) {
             $this->sendErrorResponse('Invalid payload', 400);
             return null;
         }
+
+        // sanitize free-text string fields from JSON input
+        if (isset($product->name)) {
+            $product->name = $this->sanitize((string) $product->name);
+        }
+        if (isset($product->description)) {
+            $product->description = $this->sanitize((string) $product->description);
+        }
+        if (isset($product->brand)) {
+            $product->brand = $this->sanitize((string) $product->brand);
+        }
+
         return $product;
     }
 
     /**
-     * Save uploaded file to public/uploads and return its public URL path.
+     * Saves an uploaded file to public/uploads and returns the public URL
+     * The file extension is sanitized to only allow alphanumeric characters
      *
      * @param array{name:string,type:string,tmp_name:string,error:int,size:int} $file
+     * @return string|null - the public URL path or null if the upload failed
      */
     private function storeUploadedFile(array $file): ?string
     {
@@ -194,16 +239,22 @@ class ProductController extends Controller
         if (!is_dir($uploadsDir)) {
             mkdir($uploadsDir, 0777, true);
         }
-        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $safeExt = preg_replace('/[^a-zA-Z0-9]/', '', $ext);
+        $ext      = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $safeExt  = preg_replace('/[^a-zA-Z0-9]/', '', $ext);
         $filename = uniqid('img_', true) . ($safeExt ? '.' . $safeExt : '');
-        $dest = $uploadsDir . '/' . $filename;
+        $dest     = $uploadsDir . '/' . $filename;
         if (!move_uploaded_file($file['tmp_name'], $dest)) {
             return null;
         }
         return '/uploads/' . $filename;
     }
 
+    /**
+     * Checks that the request has a valid admin JWT
+     * Returns false and sends a 403 if not
+     *
+     * @return bool
+     */
     private function requireAdmin(): bool
     {
         $payload = $this->auth->authenticate($this->getBearerToken());
