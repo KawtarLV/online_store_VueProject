@@ -3,22 +3,37 @@
 namespace App\Controllers;
 
 use App\Framework\Controller;
-use App\Services\AuthService;
-use App\Services\OrderService;
+use App\Services\IAuthService;
+use App\Services\IOrderService;
 use RuntimeException;
 
+/**
+ * Handles order creation and retrieval
+ *
+ * Routes:
+ *   GET  /orders    - list all orders (admin only)
+ *   GET  /my-orders - list the logged-in user's orders
+ *   POST /orders    - place a new order
+ */
 class OrderController extends Controller
 {
-    private OrderService $orders;
-    private AuthService $auth;
+    private IOrderService $orders;
+    private IAuthService $auth;
 
-    public function __construct()
+    /**
+     * @param IOrderService $orders - injected by the IoC container
+     * @param IAuthService $auth - injected by the IoC container
+     */
+    public function __construct(IOrderService $orders, IAuthService $auth)
     {
         parent::__construct();
-        $this->orders = new OrderService();
-        $this->auth = new AuthService();
+        $this->orders = $orders;
+        $this->auth   = $auth;
     }
 
+    /**
+     * Returns all orders in the system (admin only)
+     */
     public function getAll(): void
     {
         $payload = $this->requireAdmin();
@@ -29,6 +44,9 @@ class OrderController extends Controller
         $this->sendSuccessResponse($this->orders->list());
     }
 
+    /**
+     * Returns orders for the currently logged-in user
+     */
     public function getMine(): void
     {
         $payload = $this->requireAuthenticatedUser();
@@ -45,6 +63,10 @@ class OrderController extends Controller
         }
     }
 
+    /**
+     * Places a new order for the logged-in user
+     * Expects JSON body: { items: [{ product_id, quantity }] }
+     */
     public function create(): void
     {
         $payload = $this->requireAuthenticatedUser();
@@ -71,6 +93,9 @@ class OrderController extends Controller
     }
 
     /**
+     * Checks that the request has a valid JWT (any logged-in user)
+     * Returns the decoded payload, or null and sends 401 if not authenticated
+     *
      * @return array<string, mixed>|null
      */
     private function requireAuthenticatedUser(): ?array
@@ -85,6 +110,9 @@ class OrderController extends Controller
     }
 
     /**
+     * Checks that the request has a valid admin JWT
+     * Returns the decoded payload, or null and sends 401/403 if unauthorized
+     *
      * @return array<string, mixed>|null
      */
     private function requireAdmin(): ?array

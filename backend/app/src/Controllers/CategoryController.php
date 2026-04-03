@@ -3,18 +3,28 @@
 namespace App\Controllers;
 
 use App\Framework\Controller;
-use App\Services\CategoryService;
+use App\Services\ICategoryService;
 
+/**
+ * Returns product categories
+ * Route: GET /categories (public)
+ */
 class CategoryController extends Controller
 {
-    private CategoryService $service;
+    private ICategoryService $service;
 
-    public function __construct()
+    /**
+     * @param ICategoryService $service - injected by the IoC container
+     */
+    public function __construct(ICategoryService $service)
     {
         parent::__construct();
-        $this->service = new CategoryService();
+        $this->service = $service;
     }
 
+    /**
+     * Returns all categories
+     */
     public function getAll(): void
     {
         $this->sendSuccessResponse($this->service->list());

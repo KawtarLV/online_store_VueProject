@@ -4,8 +4,20 @@ namespace App\Controllers;
 
 use App\Framework\Controller;
 
+/**
+ * Handles standalone file uploads
+ * Route: POST /upload
+ */
 class UploadController extends Controller
 {
+    /**
+     * Uploads a single file and returns its public URL
+     *
+     * Security notes:
+     * - File extension is sanitized to only allow alphanumeric characters
+     * - A unique filename is generated to prevent overwrites
+     * - move_uploaded_file() ensures the file came from a real HTTP upload
+     */
     public function upload(): void
     {
         if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
@@ -13,16 +25,16 @@ class UploadController extends Controller
             return;
         }
 
-        $file = $_FILES['file'];
-        $uploadsDir = __DIR__ . '/../../public/uploads';
+        $file        = $_FILES['file'];
+        $uploadsDir  = __DIR__ . '/../../public/uploads';
         if (!is_dir($uploadsDir)) {
             mkdir($uploadsDir, 0777, true);
         }
 
-        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $extension     = pathinfo($file['name'], PATHINFO_EXTENSION);
         $safeExtension = preg_replace('/[^a-zA-Z0-9]/', '', $extension);
-        $fileName = uniqid('img_', true) . ($safeExtension ? '.' . $safeExtension : '');
-        $destination = $uploadsDir . '/' . $fileName;
+        $fileName      = uniqid('img_', true) . ($safeExtension ? '.' . $safeExtension : '');
+        $destination   = $uploadsDir . '/' . $fileName;
 
         if (!move_uploaded_file($file['tmp_name'], $destination)) {
             $this->sendErrorResponse('Upload failed', 500);

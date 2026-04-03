@@ -3,18 +3,29 @@
 namespace App\Controllers;
 
 use App\Framework\Controller;
-use App\Services\AuthService;
+use App\Services\IAuthService;
 
+/**
+ * Handles user login and registration
+ * Routes: POST /login, POST /register
+ */
 class AuthController extends Controller
 {
-    private AuthService $auth;
+    private IAuthService $auth;
 
-    public function __construct()
+    /**
+     * @param IAuthService $auth - injected by the IoC container
+     */
+    public function __construct(IAuthService $auth)
     {
         parent::__construct();
-        $this->auth = new AuthService();
+        $this->auth = $auth;
     }
 
+    /**
+     * Log in with email and password
+     * Returns a JWT token and user info on success
+     */
     public function login(): void
     {
         $payload = $this->getJsonBody();
@@ -23,7 +34,8 @@ class AuthController extends Controller
             return;
         }
 
-        $email = trim((string) ($payload['email'] ?? ''));
+        // sanitize user input to prevent script injection (htmlspecialchars)
+        $email    = $this->sanitize((string) ($payload['email'] ?? ''));
         $password = (string) ($payload['password'] ?? '');
 
         if ($email === '' || $password === '') {
@@ -40,6 +52,10 @@ class AuthController extends Controller
         $this->sendSuccessResponse($result, 200);
     }
 
+    /**
+     * Register a new user account
+     * Returns a JWT token and user info on success
+     */
     public function register(): void
     {
         $payload = $this->getJsonBody();
@@ -48,8 +64,9 @@ class AuthController extends Controller
             return;
         }
 
-        $name = trim((string) ($payload['name'] ?? ''));
-        $email = trim((string) ($payload['email'] ?? ''));
+        // sanitize free-text fields to prevent script injection
+        $name     = $this->sanitize((string) ($payload['name'] ?? ''));
+        $email    = $this->sanitize((string) ($payload['email'] ?? ''));
         $password = (string) ($payload['password'] ?? '');
 
         if ($name === '' || $email === '' || $password === '') {

@@ -49,7 +49,7 @@ online_store_VueProject/
 │   │       ├── Services/        # Business logic
 │   │       ├── Repositories/    # Database queries
 │   │       ├── Models/          # Data objects
-│   │       ├── Framework/       # Base controller and database helper
+│   │       ├── Framework/       # Base controller, IoC container, and database helper
 │   │       └── Utils/           # JWT helper
 │   └── docker-compose.yml
 ├── frontend/
@@ -103,12 +103,22 @@ Examples:
 
 I used repositories so SQL stays in one place. This keeps controllers and services easier to understand.
 
+### Interfaces
+
+Each service and repository has an interface (`IProductService`, `IProductRepository`, etc.).
+This is used for dependency injection — the IoC container in `index.php` binds each interface to its concrete class, so controllers only depend on the interface, not the implementation.
+
+### IoC Container
+
+A simple IoC (Inversion of Control) container lives in `Framework/Container.php`.
+It is set up in `index.php` and handles injecting repositories into services and services into controllers automatically through the constructor.
+
 ### Why this structure helps
 
 - each file has one clear job
-- easier to debug
-- easier to add new features later
-- cleaner than writing all logic in one file
+- controllers don't create their own dependencies
+- easier to test by swapping in a different implementation
+- easier to debug and extend
 
 ## Responsive Design
 
@@ -119,6 +129,14 @@ The website is responsive and works on:
 - desktop
 
 Tailwind CSS is used for layout, spacing, grids, and responsive utilities.
+
+## Security
+
+- All user-supplied text is sanitized with `htmlspecialchars()` before being stored to prevent script injection (XSS)
+- All database queries use PDO parameterized statements to prevent SQL injection
+- Passwords are hashed with bcrypt (`password_hash`) and never stored as plain text
+- All protected routes validate the JWT token and check the user role before responding
+- See [GDPR.md](GDPR.md) for details on personal data handling and user rights
 
 ## Authentication
 

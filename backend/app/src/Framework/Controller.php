@@ -2,6 +2,10 @@
 
 namespace App\Framework;
 
+/**
+ * Base controller class
+ * Contains helper methods used by all controllers
+ */
 class Controller
 {
     public function __construct()
@@ -9,6 +13,9 @@ class Controller
     }
 
     /**
+     * Reads and parses the JSON request body
+     * Returns null if the body is missing or invalid
+     *
      * @return array<string, mixed>|null
      */
     protected function getJsonBody(): ?array
@@ -19,6 +26,12 @@ class Controller
         return is_array($data) ? $data : null;
     }
 
+    /**
+     * Extracts the Bearer token from the Authorization header
+     * Returns null if no token is found
+     *
+     * @return string|null
+     */
     protected function getBearerToken(): ?string
     {
         $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
@@ -30,14 +43,39 @@ class Controller
         return $token !== '' ? $token : null;
     }
 
-    protected function sendSuccessResponse($data = [], $code = 200)
+    /**
+     * Sanitizes user input to prevent XSS / script injection
+     * Uses htmlspecialchars() to convert special characters like <, >, &, ", '
+     * to their HTML entity equivalents before storing or returning data
+     *
+     * @param string $value - raw input from the user
+     * @return string - sanitized string safe for storage and output
+     */
+    protected function sanitize(string $value): string
     {
-        header('Content-Type: application/json');
+        return htmlspecialchars(trim($value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+
+    /**
+     * Sends a JSON success response with the given data and HTTP status code
+     *
+     * @param mixed $data
+     * @param int $code - HTTP status code (default 200)
+     */
+    protected function sendSuccessResponse($data = [], $code = 200): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
         http_response_code($code);
         echo json_encode($data, JSON_PRETTY_PRINT);
     }
 
-    protected function sendErrorResponse($message, $code = 500)
+    /**
+     * Sends a JSON error response with an error message and HTTP status code
+     *
+     * @param string $message - error description
+     * @param int $code - HTTP status code (default 500)
+     */
+    protected function sendErrorResponse(string $message, int $code = 500): void
     {
         header('Content-Type: application/json; charset=utf-8');
         http_response_code($code);
@@ -46,9 +84,10 @@ class Controller
 
     /**
      * Maps POST data (JSON) to an instance of the specified class
-     * 
-     * @param string $className The fully qualified class name
-     * @return object|null Returns an instance of the class or null if data is invalid
+     * Only sets properties that actually exist on the class to avoid mass-assignment issues
+     *
+     * @param string $className - the fully qualified class name to hydrate
+     * @return object|null - populated instance or null if JSON was invalid
      */
     protected function mapPostDataToClass(string $className): ?object
     {
@@ -61,7 +100,7 @@ class Controller
         }
 
         $instance = new $className();
-        
+
         foreach ($data as $key => $value) {
             if (property_exists($instance, $key)) {
                 $instance->$key = $value;
