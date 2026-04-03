@@ -3,23 +3,21 @@
 namespace App\Services;
 
 use App\Models\Product;
+use App\Repositories\IProductRepository;
 use App\Repositories\ProductRepository;
 
-class ProductService
+class ProductService implements IProductService
 {
-    private ProductRepository $repo;
+    private IProductRepository $repo;
 
-    public function __construct()
+    public function __construct(?IProductRepository $repo = null)
     {
-        $this->repo = new ProductRepository();
+        $this->repo = $repo ?: new ProductRepository();
     }
 
-    /**
-     * @return Product[]
-     */
-    public function list(): array
+    public function list(?int $categoryId, int $page, int $perPage): array
     {
-        return $this->repo->all();
+        return $this->repo->paginate($categoryId, $page, $perPage);
     }
 
     public function get(int $id): ?Product

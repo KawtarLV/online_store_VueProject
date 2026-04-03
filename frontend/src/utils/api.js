@@ -101,3 +101,39 @@ export async function del(endpoint, options = {}) {
 export function getApiUrl(endpoint) {
   return buildApiUrl(endpoint);
 }
+
+// POST multipart form-data
+export async function postForm(endpoint, formData, options = {}) {
+  const url = buildApiUrl(endpoint);
+  return fetch(url, {
+    method: 'POST',
+    body: formData,
+    ...options,
+  });
+}
+
+// PUT multipart form-data
+export async function putForm(endpoint, formData, options = {}) {
+  const url = buildApiUrl(endpoint);
+  return fetch(url, {
+    method: 'PUT',
+    body: formData,
+    ...options,
+  });
+}
+
+/**
+ * Upload a single file (multipart). Expects JSON with { url }.
+ * @param {string} endpoint
+ * @param {File} file
+ */
+export async function uploadFile(endpoint, file, options = {}) {
+  const url = buildApiUrl(endpoint);
+  const fd = new FormData();
+  fd.append('file', file);
+  return fetch(url, {
+    method: 'POST',
+    body: fd,
+    ...options,
+  });
+}

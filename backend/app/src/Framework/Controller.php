@@ -8,6 +8,28 @@ class Controller
     {
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function getJsonBody(): ?array
+    {
+        $input = file_get_contents('php://input');
+        $data = json_decode($input ?? '', true);
+
+        return is_array($data) ? $data : null;
+    }
+
+    protected function getBearerToken(): ?string
+    {
+        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+        if (stripos($header, 'Bearer ') !== 0) {
+            return null;
+        }
+
+        $token = trim(substr($header, 7));
+        return $token !== '' ? $token : null;
+    }
+
     protected function sendSuccessResponse($data = [], $code = 200)
     {
         header('Content-Type: application/json');
@@ -31,7 +53,12 @@ class Controller
     protected function mapPostDataToClass(string $className): ?object
     {
         $input = file_get_contents('php://input');
-        $data = json_decode($input, true);
+        $data = json_decode($input ?? '', true);
+
+        if (!is_array($data)) {
+            $this->sendErrorResponse('Invalid JSON body', 400);
+            return null;
+        }
 
         $instance = new $className();
         

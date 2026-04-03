@@ -42,6 +42,30 @@ $dispatcher = simpleDispatcher(function (RouteCollector $r) {
     $r->addRoute('POST', '/products', ['App\Controllers\ProductController', 'create']);
     $r->addRoute('PUT', '/products/{id}', ['App\Controllers\ProductController', 'update']);
     $r->addRoute('DELETE', '/products/{id}', ['App\Controllers\ProductController', 'delete']);
+
+    // Auth
+    $r->addRoute('POST', '/login', ['App\Controllers\AuthController', 'login']);
+    $r->addRoute('POST', '/register', ['App\Controllers\AuthController', 'register']);
+
+    // Categories
+    $r->addRoute('GET', '/categories', ['App\Controllers\CategoryController', 'getAll']);
+
+    // Settings
+    $r->addRoute('GET', '/settings', ['App\Controllers\SettingsController', 'get']);
+    $r->addRoute('PUT', '/settings', ['App\Controllers\SettingsController', 'update']);
+
+    // Uploads
+    $r->addRoute('POST', '/upload', ['App\Controllers\UploadController', 'upload']);
+
+    // Users
+    $r->addRoute('GET', '/users', ['App\Controllers\UserController', 'getAll']);
+    $r->addRoute('POST', '/users', ['App\Controllers\UserController', 'create']);
+    $r->addRoute('DELETE', '/users/{id}', ['App\Controllers\UserController', 'delete']);
+
+    // Orders
+    $r->addRoute('GET', '/orders', ['App\Controllers\OrderController', 'getAll']);
+    $r->addRoute('GET', '/my-orders', ['App\Controllers\OrderController', 'getMine']);
+    $r->addRoute('POST', '/orders', ['App\Controllers\OrderController', 'create']);
 });
 
 
@@ -58,13 +82,15 @@ $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 switch ($routeInfo[0]) {
     // Handle not found routes
     case FastRoute\Dispatcher::NOT_FOUND:
+        header('Content-Type: application/json');
         http_response_code(404);
-        echo 'Not Found';
+        echo json_encode(['error' => 'Not Found']);
         break;
     // Handle routes that were invoked with the wrong HTTP method
     case FastRoute\Dispatcher::METHOD_NOT_ALLOWED:
+        header('Content-Type: application/json');
         http_response_code(405);
-        echo 'Method Not Allowed';
+        echo json_encode(['error' => 'Method Not Allowed']);
         break;
     // Handle found routes
     case FastRoute\Dispatcher::FOUND:
