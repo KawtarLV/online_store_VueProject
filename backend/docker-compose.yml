@@ -14,13 +14,21 @@ services:
             dockerfile: PHP.Dockerfile
         volumes:
             - ./app:/app
+        environment:
+            DB_HOST: mysql
+            DB_NAME: ecommerce_store
+            DB_USER: developer
+            DB_PASS: secret123
+            JWT_SECRET: simple-shop-secret
+        depends_on:
+            - mysql
     mysql:
         image: mariadb:latest
         environment:
             MYSQL_ROOT_PASSWORD: 'secret123'
             MYSQL_USER: 'developer'
             MYSQL_PASSWORD: 'secret123'
-            MYSQL_DATABASE: 'developmentdb'
+            MYSQL_DATABASE: 'ecommerce_store'
         volumes:
             - mysqldata:/var/lib/mysql
         ports:

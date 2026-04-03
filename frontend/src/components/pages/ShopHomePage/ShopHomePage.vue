@@ -1,80 +1,145 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-slate-50">
-    <NavBar />
-
-    <main class="flex-1">
-      <section class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-          <p class="text-sm uppercase tracking-[0.2em] text-slate-300 mb-3">Starter</p>
-          <h1 class="text-3xl sm:text-4xl font-bold mb-3">Simple shop blueprint</h1>
-          <p class="text-slate-200 max-w-2xl">
-            PHP MVC backend + JSON dummy DB, consumed by a Vue frontend. Use this as a foundation and extend.
-          </p>
-          <div class="mt-6 flex gap-3">
-            <a href="#products" class="inline-flex items-center px-4 py-2 bg-white text-slate-900 font-semibold rounded-lg shadow-sm hover:-translate-y-0.5 transform transition">
-              View products
-            </a>
-            <a href="http://localhost/products" class="inline-flex items-center px-4 py-2 border border-white/60 text-white font-semibold rounded-lg hover:bg-white/10 transition">
-              API: /products
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <section id="products" class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div class="flex items-center justify-between mb-6">
+  <div class="min-h-screen bg-slate-50 text-slate-900 selection:bg-orange-100">
+    <section class="border-b border-slate-200 bg-gradient-to-br from-orange-50 via-white to-amber-50">
+      <div class="max-w-7xl mx-auto px-6 py-16 lg:px-8 lg:py-24">
+        <div class="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
-            <h2 class="text-2xl font-semibold text-slate-900">Products</h2>
-            <p class="text-sm text-slate-600">Served from the PHP dummy store.</p>
+            <p class="text-sm font-semibold uppercase tracking-[0.25em] text-orange-600">
+              {{ props.settings?.store_name || 'Online Shop' }}
+            </p>
+            <h1 class="mt-4 text-4xl font-bold tracking-tight text-slate-950 sm:text-6xl">
+              Simple shopping experience for customers and admins.
+            </h1>
+            <p class="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
+              Browse products by category, manage stock, place demo orders, and review activity
+              from one clean dashboard. The landing page stays simple, responsive, and clear.
+            </p>
+            <div class="mt-8 flex flex-wrap gap-4">
+              <a href="#/products" class="rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-800">
+                Browse Products
+              </a>
+              <a href="#/login" class="rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100">
+                Admin Login
+              </a>
+            </div>
           </div>
-          <button @click="loadProducts" class="px-3 py-2 text-sm font-medium border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-100">
-            Refresh
-          </button>
-        </div>
 
-        <div v-if="loading" class="text-slate-600">Loading products...</div>
-        <div v-else-if="error" class="text-red-600">{{ error }}</div>
-        <div v-else class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <ProductCard
-            v-for="product in products"
-            :key="product.id"
-            :product="product"
-            @view="emit('view-product', $event)"
-          />
+          <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="rounded-2xl bg-slate-100 p-4">
+                <img src="/Phones.svg" alt="Phones" class="h-32 w-full object-contain" />
+              </div>
+              <div class="rounded-2xl bg-slate-100 p-4">
+                <img src="/Laptops.svg" alt="Laptops" class="h-32 w-full object-contain" />
+              </div>
+              <div class="rounded-2xl bg-slate-100 p-4">
+                <img src="/Headphones.svg" alt="Headphones" class="h-32 w-full object-contain" />
+              </div>
+              <div class="rounded-2xl bg-slate-100 p-4">
+                <img src="/TVs.svg" alt="TVs" class="h-32 w-full object-contain" />
+              </div>
+            </div>
+          </div>
         </div>
-      </section>
-    </main>
+      </div>
+    </section>
 
-    <Footer />
+    <section class="max-w-7xl mx-auto px-6 py-16 lg:px-8">
+      <div class="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-[0.2em] text-orange-500">Categories</p>
+          <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">Shop by category</h2>
+          <p class="mt-3 max-w-2xl text-slate-600">
+            Each category uses the same reusable component. Clicking a card opens the products
+            page with the matching category filter already applied.
+          </p>
+        </div>
+        <a href="#/products" class="text-sm font-semibold text-orange-600 hover:text-orange-700">
+          View all products
+        </a>
+      </div>
+
+      <div v-if="loading" class="space-y-4">
+        <div v-for="i in 4" :key="i" class="h-40 animate-pulse rounded-2xl bg-slate-200"></div>
+      </div>
+
+      <div v-else-if="error" class="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
+        {{ error }}
+      </div>
+
+      <div v-else class="space-y-5">
+        <CategoryTile
+          v-for="category in categories"
+          :key="category.id"
+          :category="category"
+          @select="goToCategory"
+        />
+      </div>
+    </section>
+
+    <section class="max-w-7xl mx-auto px-6 pb-24 lg:px-8">
+      <div class="grid gap-6 lg:grid-cols-2">
+        <article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 class="text-xl font-semibold text-slate-900">Application concept</h3>
+          <p class="mt-3 text-sm leading-7 text-slate-600">
+            This is a small e-commerce application with category browsing, a products page with
+            filtering, a simple cart, order saving, and an admin dashboard for products, users,
+            settings, and orders.
+          </p>
+        </article>
+
+        <article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 class="text-xl font-semibold text-slate-900">Technical structure</h3>
+          <p class="mt-3 text-sm leading-7 text-slate-600">
+            The frontend uses reusable Vue components and routing. The backend follows a simple
+            MVC structure with controllers, services, repositories, and JSON REST endpoints.
+          </p>
+        </article>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue';
 import { get } from '../../../utils/api.js';
-import NavBar from '../../organisms/NavBar/NavBar.vue';
-import Footer from '../../organisms/Footer/Footer.vue';
-import ProductCard from '../../molecules/ProductCard/ProductCard.vue';
+import CategoryTile from '../../molecules/CategoryTile.vue';
 
-const emit = defineEmits(['view-product']);
+const props = defineProps({
+  settings: {
+    type: Object,
+    default: null,
+  },
+});
 
-const products = ref([]);
+const categories = ref([]);
 const loading = ref(true);
 const error = ref('');
 
-async function loadProducts() {
+async function loadCategories() {
   loading.value = true;
   error.value = '';
+
   try {
-    const response = await get('/products');
-    if (!response.ok) throw new Error(`API responded with ${response.status}`);
-    products.value = await response.json();
-  } catch (err) {
-    error.value = err.message || 'Failed to load products';
+    const response = await get('/categories');
+    const data = await response.json();
+
+    if (!response.ok) {
+      error.value = data.error || 'Failed to load categories';
+      return;
+    }
+
+    categories.value = Array.isArray(data) ? data : [];
+  } catch {
+    error.value = 'Network error while loading categories';
   } finally {
     loading.value = false;
   }
 }
 
-onMounted(loadProducts);
+function goToCategory(categoryId) {
+  window.location.hash = `#/products?category=${categoryId}`;
+}
+
+onMounted(loadCategories);
 </script>
